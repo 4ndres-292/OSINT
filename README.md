@@ -6,7 +6,7 @@ Pipeline automatizado de reconocimiento OSINT para auditorías de seguridad. Eje
 
 ```bash
 chmod +x osint.sh generar_reporte.sh
-./osint.sh minedu.gob.bo
+./osint.sh [dominio]
 ```
 
 ## Estructura del Proyecto

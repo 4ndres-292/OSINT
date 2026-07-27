@@ -22,13 +22,16 @@ if [ ! -f "$DNS_FILE" ]; then
 fi
 
 DIR="resultados/$DOMINIO"
-
 mkdir -p "$DIR"
 
 SALIDA="$DIR/httpx_$DOMINIO.txt"
 
-TMP="/tmp/httpx_hosts.txt"
-RAW="/tmp/httpx_raw.txt"
+# Temporales únicos por ejecución
+TMPDIR_WORK=$(mktemp -d)
+trap 'rm -rf "$TMPDIR_WORK"' EXIT
+
+TMP="$TMPDIR_WORK/hosts.txt"
+RAW="$TMPDIR_WORK/raw.txt"
 
 # ==========================================
 # Obtener únicamente hosts válidos
@@ -64,50 +67,30 @@ sed -r 's/\x1B\[[0-9;]*[mK]//g' \
 
 if [ ! -s "$RAW" ]; then
     echo "[-] No hubo resultados."
-    rm -f "$TMP"
     exit 1
 fi
 
 # ==========================================
-# Crear reporte
+# Crear reporte — formato bracket para parsing
 # ==========================================
 
 cat > "$SALIDA" <<EOF
-=========================================================================================================================
+========================================================================================================================
                                    TECNOLOGIAS WEB - $DOMINIO
-=========================================================================================================================
-
-SUBDOMINIO                               HTTP     TAMAÑO     TITULO                                   TECNOLOGIAS
--------------------------------------------------------------------------------------------------------------------------
+========================================================================================================================
 
 EOF
 
+# Output bracket format for report parsing
 while read -r linea
 do
-
-    HOST=$(echo "$linea" | cut -d' ' -f1)
-
-    STATUS=$(echo "$linea" | grep -o '\[[0-9]\{3\}\]' | head -1 | tr -d '[]')
-
-    SIZE=$(echo "$linea" | grep -o '\[[0-9]\+\]' | sed -n '2p' | tr -d '[]')
-
-    TITULO=$(echo "$linea" | grep -o '\[[^]]*\]' | sed -n '3p' | tr -d '[]')
-
-    TECNO=$(echo "$linea" | grep -o '\[[^]]*\]' | sed -n '4p' | tr -d '[]')
-
-    printf "%-40s %-8s %-10s %-40s %s\n" \
-        "$HOST" \
-        "$STATUS" \
-        "$SIZE" \
-        "$TITULO" \
-        "$TECNO" \
-        >> "$SALIDA"
-
+    echo "$linea" >> "$SALIDA"
 done < "$RAW"
 
-rm -f "$TMP"
-rm -f "$RAW"
+TOTAL_URL=$(wc -l < "$RAW")
 
+echo
+echo "[+] Hosts procesados: $TOTAL_URL"
 echo
 echo "[+] Reporte generado:"
 echo "$SALIDA"

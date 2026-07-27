@@ -37,7 +37,14 @@ mkdir -p "$DIR"
 
 SALIDA="$DIR/asn_$DOMINIO.txt"
 
-TMP_IP="/tmp/ip_unicas.txt"
+# =====================================
+# Temporales únicos por ejecución
+# =====================================
+
+TMPDIR_WORK=$(mktemp -d)
+trap 'rm -rf "$TMPDIR_WORK"' EXIT
+
+TMP_IP="$TMPDIR_WORK/ip_unicas.txt"
 
 # =====================================
 # Extraer IPs únicas
@@ -78,7 +85,7 @@ DETALLE POR ASN
 
 EOF
 
-TMP_ASN="/tmp/asn_vistos.txt"
+TMP_ASN="$TMPDIR_WORK/asn_vistos.txt"
 
 > "$TMP_ASN"
 
@@ -91,7 +98,7 @@ do
 
     echo "[+] Analizando $IP ..."
 
-    INFO=$(curl -s "https://ipinfo.io/$IP/json")
+    INFO=$(curl -s --max-time 10 "https://ipinfo.io/$IP/json")
 
     ASN=$(echo "$INFO" | jq -r '.org' | awk '{print $1}')
 
@@ -135,9 +142,6 @@ do
     printf "Contacto      : %s\n" "$EMAIL" >> "$SALIDA"
 
 done < "$TMP_IP"
-
-rm -f "$TMP_IP"
-rm -f "$TMP_ASN"
 
 echo
 echo "[+] Reporte generado:"

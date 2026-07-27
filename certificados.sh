@@ -19,19 +19,26 @@ if [ ! -f "$DNS_FILE" ]; then
     exit 1
 fi
 
+# =====================================
+# Temporales únicos por ejecución
+# =====================================
+
+TMPDIR_WORK=$(mktemp -d)
+trap 'rm -rf "$TMPDIR_WORK"' EXIT
+
 DIR="resultados/$DOMINIO"
 mkdir -p "$DIR"
 
 SALIDA="$DIR/certificados_$DOMINIO.txt"
 
-TMP="/tmp/certificados_hosts.txt"
-
 # =====================================
 # Obtener únicamente los hosts válidos
 # =====================================
 
+TMP="$TMPDIR_WORK/hosts.txt"
+
 awk '
-NR>5 && NF>0{
+NR>9 && NF>0{
     print $1
 }
 ' "$DNS_FILE" | sort -u > "$TMP"
@@ -58,7 +65,7 @@ EOF
 while read HOST
 do
 
-CERT=$(echo | openssl s_client \
+CERT=$(echo | timeout 10 openssl s_client \
 -connect ${HOST}:443 \
 -servername ${HOST} 2>/dev/null)
 
@@ -92,8 +99,6 @@ printf "%-38s %-25s %-20s %5s\n" \
 >> "$SALIDA"
 
 done < "$TMP"
-
-rm -f "$TMP"
 
 echo
 echo "[+] Reporte generado:"

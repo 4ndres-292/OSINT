@@ -48,14 +48,21 @@ mkdir -p "$DIR"
 
 SALIDA="$DIR/security_headers_$DOMINIO.txt"
 
-TMP_HOSTS="/tmp/security_hosts.txt"
+# ==========================================================
+# Temporales únicos por ejecución
+# ==========================================================
+
+TMPDIR_WORK=$(mktemp -d)
+trap 'rm -rf "$TMPDIR_WORK"' EXIT
+
+TMP_HOSTS="$TMPDIR_WORK/hosts.txt"
 
 # ==========================================================
 # Obtener únicamente los hosts
 # ==========================================================
 
 awk '
-NR>6 && NF>0{
+NR>9 && NF>0{
     print $1
 }
 ' "$DNS_FILE" | sort -u > "$TMP_HOSTS"
@@ -267,8 +274,6 @@ Puntaje máximo: 8
 
 EOF
 
-
-rm -f "$TMP_HOSTS"
 
 echo
 echo "[+] Reporte generado:"
